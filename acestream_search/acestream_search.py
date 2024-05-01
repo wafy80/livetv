@@ -1,4 +1,3 @@
-from . import __version__
 import json
 from itertools import count
 from datetime import datetime, timedelta
@@ -8,6 +7,7 @@ import lxml.etree as ET
 # workaround for python2 vs python3 compatibility
 from urllib.request import urlopen, quote
 
+__version__ = '0.1'
 
 # define default time slot for updated availability
 def default_after():
