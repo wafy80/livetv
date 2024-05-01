@@ -1,5 +1,5 @@
 import sys
-from distutils.util import split_quoted
+from setuptools._distutils.util import split_quoted
 
 from flask import Flask, request, Response
 
