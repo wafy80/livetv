@@ -18,7 +18,7 @@ def default_after():
 
 # transform date time to timestamp
 def time_point(point):
-    epoch = '1970-01-01 03:00:00'
+    epoch = '1970-01-01 00:00:00'
     isof = '%Y-%m-%d %H:%M:%S'
     epoch = datetime.strptime(epoch, isof)
     try:
@@ -51,6 +51,7 @@ def get_options(args={}):
     parser.add_argument(
         '-q', '--quiet',
         action='store_true',
+        default=True,
         help='increase output quiet.'
     )
     parser.add_argument(
@@ -90,6 +91,7 @@ def get_options(args={}):
     parser.add_argument(
         '-e', '--show_epg',
         action='store_true',
+        default=True,
         help='include EPG in the response.'
     )
     parser.add_argument(
@@ -212,21 +214,18 @@ def make_epg(args, group):
         channel = ET.Element('channel')
         channel.set('id', channel_id)
         display = ET.SubElement(channel, 'display-name')
-        display.set('lang', 'ru')
         display.text = str(group['name'])
         if 'icon' in group:
             icon = ET.SubElement(channel, 'icon')
             icon.set('src', group['icon'])
         programme = ET.Element('programme')
-        programme.set('start', start + ' +0300')
-        programme.set('stop', stop + ' +0300')
+        programme.set('start', start + ' +0000')
+        programme.set('stop', stop + ' +0000')
         programme.set('channel', channel_id)
         title = ET.SubElement(programme, 'title')
-        title.set('lang', 'ru')
         title.text = group['epg'][0]['name']
         if 'description' in group['epg']:
             desc = ET.SubElement(programme, 'desc')
-            desc.set('lang', 'ru')
             desc.text = group['epg'][0]['description']
         xmlstr = ET.tostring(channel, encoding="unicode", pretty_print=True)
         xmlstr += ET.tostring(programme, encoding="unicode", pretty_print=True)
@@ -316,7 +315,7 @@ def main(args):
     elif args.json:
         yield '['
     elif not args.url:
-        yield '#EXTM3U'
+        yield '#EXTM3U url-tvg="' + args.prog + '?xml_epg=1"'
     # make a correct json list of pages
     for page in pager(args):
         if args.json:
