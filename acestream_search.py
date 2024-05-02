@@ -3,6 +3,7 @@ from itertools import count
 from datetime import datetime, timedelta
 import argparse
 import lxml.etree as ET
+import time
 
 # workaround for python2 vs python3 compatibility
 from urllib.request import urlopen, quote
@@ -15,6 +16,8 @@ def default_after():
     now = datetime.now()
     return datetime.strftime(now - age, '%Y-%m-%d %H:%M:%S')
 
+def default_zone():
+    return time.strftime('%z (%Z)')[0:5]
 
 # transform date time to timestamp
 def time_point(point):
@@ -126,6 +129,12 @@ def get_options(args={}):
         version='%(prog)s {0}'.format(__version__),
         help='Show version number and exit.'
     )
+    parser.add_argument(
+        '-z', '--zone',
+        type=str,
+        default=default_zone(),
+        help='timezone shift.'
+    )
     if __name__ == '__main__':
         opts = parser.parse_args()
     else:
@@ -171,13 +180,16 @@ def fetch_page(args, query):
 
 
 # compose m3u playlist from json data and options
-def make_playlist(args, item, counter):
+def make_playlist(args, item, counter, group):
     if item['availability_updated_at'] >= args.after \
             and (not args.name or item['name'].strip() in args.name):
         title = '#EXTINF:-1'
         if args.show_epg and 'channel_id' in item:
             title += ' tvg-id="' + str(item['channel_id']) + '"'
-        title += ',' + str(counter) + '. ' + item['name']
+        title += ' tvg-chno="' + str(counter) + '"'    
+        if 'icons' in group:
+            title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
+        title += ',' + item['name']
         if not args.quiet:
             if 'categories' in item:
                 categories = ''
@@ -219,8 +231,8 @@ def make_epg(args, group):
             icon = ET.SubElement(channel, 'icon')
             icon.set('src', group['icon'])
         programme = ET.Element('programme')
-        programme.set('start', start + ' +0000')
-        programme.set('stop', stop + ' +0000')
+        programme.set('start', start + ' ' + args.zone)
+        programme.set('stop', stop + ' ' + args.zone)
         programme.set('channel', channel_id)
         title = ET.SubElement(programme, 'title')
         title.text = group['epg'][0]['name']
@@ -262,7 +274,7 @@ def convert_json(args):
             if args.group_by_channels or 'items' in channels[0].keys():
                 for group in channels:
                     for item in group['items']:
-                        match = make_playlist(args, item, next(counter))
+                        match = make_playlist(args, item, next(counter), group)
                         if match:
                             # If option "url" set we need only single item.
                             if args.url:
@@ -274,7 +286,7 @@ def convert_json(args):
                         break
             else:
                 for item in channels:
-                    match = make_playlist(args, item, next(counter))
+                    match = make_playlist(args, item, next(counter), group)
                     if match:
                         # If option "url" set we need only single item.
                         if args.url:
