@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import argparse
 import lxml.etree as ET
 import time
+from transliterate import translit
 
 # workaround for python2 vs python3 compatibility
 from urllib.request import urlopen, quote
@@ -183,13 +184,18 @@ def fetch_page(args, query):
 def make_playlist(args, item, counter, group):
     if item['availability_updated_at'] >= args.after \
             and (not args.name or item['name'].strip() in args.name):
-        title = '#EXTINF:-1'
+        title = '#EXTINF:-1'        
         if args.show_epg and 'channel_id' in item:
             title += ' tvg-id="' + str(item['channel_id']) + '"'
         title += ' tvg-chno="' + str(counter) + '"'    
         if 'icons' in group:
             title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
-        title += ',' + item['name']
+        totrans = item['name']
+        try:
+            translated = translit(totrans,reversed=True)
+        except:
+            translated = totrans                
+        title += ',' + translated
         if not args.quiet:
             if 'categories' in item:
                 categories = ''
@@ -235,7 +241,12 @@ def make_epg(args, group):
         programme.set('stop', stop + ' ' + args.zone)
         programme.set('channel', channel_id)
         title = ET.SubElement(programme, 'title')
-        title.text = group['epg'][0]['name']
+        totrans=group['epg'][0]['name']
+        try:
+            translated = translit(totrans,reversed=True)
+        except:
+            translated = totrans    
+        title.text = translated
         if 'description' in group['epg']:
             desc = ET.SubElement(programme, 'desc')
             desc.text = group['epg'][0]['description']
