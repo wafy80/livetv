@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import argparse
 import lxml.etree as ET
 import time
-from transliterate import translit
+from unidecode import unidecode
 
 # workaround for python2 vs python3 compatibility
 from urllib.request import urlopen, quote
@@ -199,12 +199,7 @@ def make_playlist(args, item, counter, group):
         title += ' group-title="' + categories + '"'
         if 'icons' in group:
             title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
-        totrans = item['name']
-        try:
-            translated = translit(totrans,reversed=True)
-        except:
-            translated = totrans                
-        title += ',' + translated
+        title += ',' + unidecode(item['name'])
         if not args.quiet:
             title += ' [' + categories + ' ]'
             
@@ -242,12 +237,7 @@ def make_epg(args, group):
         programme.set('stop', stop + ' ' + args.zone)
         programme.set('channel', channel_id)
         title = ET.SubElement(programme, 'title')
-        totrans=group['epg'][0]['name']
-        try:
-            translated = translit(totrans,reversed=True)
-        except:
-            translated = totrans    
-        title.text = translated
+        title.text = unidecode(group['epg'][0]['name'])
         if 'description' in group['epg']:
             desc = ET.SubElement(programme, 'desc')
             desc.text = group['epg'][0]['description']
