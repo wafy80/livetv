@@ -184,10 +184,19 @@ def fetch_page(args, query):
 def make_playlist(args, item, counter, group):
     if item['availability_updated_at'] >= args.after \
             and (not args.name or item['name'].strip() in args.name):
+        categories = ''
+        if 'categories' in item:            
+            for kind in item['categories']:
+                if item['categories'].index(kind) > 0:
+                    delim = ';'
+                else:
+                    delim = ''
+                categories += delim + kind       
         title = '#EXTINF:-1'        
         if args.show_epg and 'channel_id' in item:
             title += ' tvg-id="' + str(item['channel_id']) + '"'
         title += ' tvg-chno="' + str(counter) + '"'    
+        title += ' group-title="' + categories + '"'
         if 'icons' in group:
             title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
         totrans = item['name']
@@ -197,16 +206,8 @@ def make_playlist(args, item, counter, group):
             translated = totrans                
         title += ',' + translated
         if not args.quiet:
-            if 'categories' in item:
-                categories = ''
-                for kind in item['categories']:
-                    if item['categories'].index(kind) > 0:
-                        delim = '; '
-                    else:
-                        delim = ' '
-                    categories += delim + kind
-                title += ' [' + categories + ' ]'
-
+            title += ' [' + categories + ' ]'
+            
             dt = datetime.fromtimestamp(item['availability_updated_at'])
             title += ' ' + dt.isoformat(sep=' ')
             title += ' a=' + str(item['availability'])
