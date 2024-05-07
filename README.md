@@ -13,10 +13,15 @@ git clone https://github.com/Wafy80/acestream_playlist.git
 ```
 python3 search.py
 ```
-
-By default You will get long m3u playlist.
-See help for for more options:
-
+then go to
 ```
-http://127.0.0.1:8088/search.m3u?help
+http://127.0.0.1:8088/search.m3u
 ```
+
+## References:
+
+This project was based in or use solutions from:
+
+https://github.com/vstavrinov/acestream_search
+
+https://github.com/vstavrinov/acestream-service
