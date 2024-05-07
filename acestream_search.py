@@ -13,7 +13,7 @@ __version__ = 'v0.1.0-alpha'
 
 # define default time slot for updated availability
 def default_after():
-    age = timedelta(days=7)
+    age = timedelta(days=1)
     now = datetime.now()
     return datetime.strftime(now - age, '%Y-%m-%d %H:%M:%S')
 
@@ -53,12 +53,6 @@ def get_options(args={}):
         help='Pattern to search tv channels.'
     )
     parser.add_argument(
-        '-q', '--quiet',
-        action='store_true',
-        default=True,
-        help='increase output quiet.'
-    )
-    parser.add_argument(
         '-n', '--name',
         nargs='+',
         type=str,
@@ -84,8 +78,8 @@ def get_options(args={}):
     )
     parser.add_argument(
         '-s', '--page_size',
-        type=int, default=200,
-        help='page size (max 200).'
+        type=int, default=2000,
+        help='page size.'
     )
     parser.add_argument(
         '-g', '--group_by_channels',
@@ -200,12 +194,12 @@ def make_playlist(args, item, counter, group):
         if 'icons' in group:
             title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
         title += ',' + unidecode(item['name'])
-        if not args.quiet:
-            title += ' [' + categories + ' ]'
-            
+        if args.debug:
+            title += ' [' + categories + ' ]'            
+
             dt = datetime.fromtimestamp(item['availability_updated_at'])
             title += ' ' + dt.isoformat(sep=' ')
-            title += ' a=' + str(item['availability'])
+            title += ' a=' + str(item['availability']) 
             if 'bitrate' in item:
                 title += " b=" + str(item['bitrate'])
         if args.url:
