@@ -11,6 +11,9 @@ from urllib.request import urlopen, quote
 
 __version__ = 'v0.1.0-alpha'
 
+show_epg = 1
+group_by_channels = 1
+
 # define default time slot for updated availability
 def default_after():
     age = timedelta(days=1)
@@ -82,17 +85,6 @@ def get_options(args={}):
         help='page size.'
     )
     parser.add_argument(
-        '-g', '--group_by_channels',
-        action='store_true',
-        help='group output results by channel.'
-    )
-    parser.add_argument(
-        '-e', '--show_epg',
-        action='store_true',
-        default=True,
-        help='include EPG in the response.'
-    )
-    parser.add_argument(
         '-j', '--json',
         action='store_true',
         help='json output.'
@@ -136,16 +128,6 @@ def get_options(args={}):
         opts = parser.parse_known_args()[0]
     opts.__dict__.update(args)
     opts.after = time_point(opts.after)
-    # They could be string or boolean, but should be integer
-    if opts.show_epg:
-        opts.show_epg = 1
-        opts.group_by_channels = 1
-    if opts.group_by_channels:
-        opts.group_by_channels = 1
-    # epg requires group by channels option being set
-    if opts.xml_epg:
-        opts.show_epg = 1
-        opts.group_by_channels = 1
     if 'help' in args:
         opts.help = parser.format_help()
     if 'usage' in args:
@@ -164,8 +146,8 @@ def build_query(args, page):
            '&query=' + quote(args.query) + \
            '&category=' + quote(args.category) + \
            '&page_size=' + str(args.page_size) + \
-           '&group_by_channels=' + str(args.group_by_channels) + \
-           '&show_epg=' + str(args.show_epg)
+           '&group_by_channels=' + str(group_by_channels) + \
+           '&show_epg=' + str(show_epg)
 
 
 # fetch one page with json data
@@ -187,7 +169,7 @@ def make_playlist(args, item, counter, group):
                     delim = ''
                 categories += delim + kind       
         title = '#EXTINF:-1'        
-        if args.show_epg and 'channel_id' in item:
+        if show_epg and 'channel_id' in item:
             title += ' tvg-id="' + str(item['channel_id']) + '"'
         title += ' tvg-chno="' + str(counter) + '"'    
         title += ' group-title="' + categories + '"'
@@ -246,7 +228,7 @@ def get_channels(args):
     while True:
         query = build_query(args, next(page))
         chunk = fetch_page(args, query)['result']['results']
-        if len(chunk) == 0 or not args.group_by_channels and (
+        if len(chunk) == 0 or not group_by_channels and (
                 'infohash' in chunk[0].keys() and chunk[0][
                 'availability_updated_at'] < args.after):
             break
@@ -267,7 +249,7 @@ def convert_json(args):
         # and finally main thing: m3u playlist output
         else:
             m3u = ''
-            if args.group_by_channels or 'items' in channels[0].keys():
+            if group_by_channels or 'items' in channels[0].keys():
                 for group in channels:
                     for item in group['items']:
                         match = make_playlist(args, item, next(counter), group)
