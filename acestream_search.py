@@ -15,8 +15,8 @@ show_epg = 1
 group_by_channels = 1
 
 # define default time slot for updated availability
-def default_after():
-    age = timedelta(days=1)
+def default_after(delta):
+    age = timedelta(hours=delta)
     now = datetime.now()
     return datetime.strftime(now - age, '%Y-%m-%d %H:%M:%S')
 
@@ -106,9 +106,9 @@ def get_options(args={}):
     )
     parser.add_argument(
         '-a', '--after',
-        type=str,
-        default=default_after(),
-        help='availability updated at.'
+        type=float,
+        default=1,
+        help='availability updated at (n. previous hours) '
     )
     parser.add_argument(
         '-V', '--version',
@@ -122,12 +122,17 @@ def get_options(args={}):
         default=default_zone(),
         help='timezone shift.'
     )
+    parser.add_argument(
+    '-m', '--hls',
+    action='store_true',
+    help='get HLS stream.'
+    )
     if __name__ == '__main__':
         opts = parser.parse_args()
     else:
         opts = parser.parse_known_args()[0]
     opts.__dict__.update(args)
-    opts.after = time_point(opts.after)
+    opts.after = time_point(default_after(float(opts.after) + float(opts.zone[0:3])))
     if 'help' in args:
         opts.help = parser.format_help()
     if 'usage' in args:
@@ -160,14 +165,9 @@ def fetch_page(args, query):
 def make_playlist(args, item, counter, group):
     if item['availability_updated_at'] >= args.after \
             and (not args.name or item['name'].strip() in args.name):
-        categories = ''
-        if 'categories' in item:            
-            for kind in item['categories']:
-                if item['categories'].index(kind) > 0:
-                    delim = ';'
-                else:
-                    delim = ''
-                categories += delim + kind       
+        categories = 'Other'
+        if 'categories' in item:
+            categories = unidecode(item['categories'][0]).capitalize()
         title = '#EXTINF:-1'        
         if show_epg and 'channel_id' in item:
             title += ' tvg-id="' + str(item['channel_id']) + '"'
@@ -178,18 +178,21 @@ def make_playlist(args, item, counter, group):
         title += ',' + unidecode(item['name'])
         if args.debug:
             title += ' [' + categories + ' ]'            
-
             dt = datetime.fromtimestamp(item['availability_updated_at'])
             title += ' ' + dt.isoformat(sep=' ')
             title += ' a=' + str(item['availability']) 
             if 'bitrate' in item:
                 title += " b=" + str(item['bitrate'])
+        if args.hls:
+            stream_type = 'manifest.m3u8'
+        else:
+            stream_type = 'getstream'
         if args.url:
-            return ('http://' + args.target + '/ace/getstream?infohash=' +
+            return ('http://' + args.target + '/ace/' + stream_type + '?infohash=' +
                     item['infohash'])
         else:
             return (title + '\n' +
-                    'http://' + args.target + '/ace/getstream?infohash=' +
+                    'http://' + args.target + '/ace/' + stream_type + '?infohash=' +
                     item['infohash'] + '\n')
 
 
