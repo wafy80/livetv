@@ -107,7 +107,7 @@ def get_options(args={}):
     parser.add_argument(
         '-a', '--after',
         type=float,
-        default=1,
+        default=24,
         help='availability updated at (n. previous hours) '
     )
     parser.add_argument(
