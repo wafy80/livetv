@@ -107,7 +107,7 @@ def get_options(args={}):
     parser.add_argument(
         '-a', '--after',
         type=float,
-        default=24,
+        default=0,
         help='availability updated at (n. previous hours) '
     )
     parser.add_argument(
@@ -132,7 +132,8 @@ def get_options(args={}):
     else:
         opts = parser.parse_known_args()[0]
     opts.__dict__.update(args)
-    opts.after = time_point(default_after(float(opts.after) + float(opts.zone[0:3])))
+    if opts.after > 0:
+        opts.after = time_point(default_after(float(opts.after) + float(opts.zone[0:3])))
     if 'help' in args:
         opts.help = parser.format_help()
     if 'usage' in args:
@@ -162,9 +163,12 @@ def fetch_page(args, query):
 
 
 # compose m3u playlist from json data and options
-def make_playlist(args, item, counter, group):
+def make_playlist(args, item, counter, group, last_match):
     if item['availability_updated_at'] >= args.after \
-            and (not args.name or item['name'].strip() in args.name):
+            and (not args.name or item['name'].strip() in args.name): 
+        if 'channel_id' in item and last_match:
+            if last_match.find(' tvg-id="' + str(item['channel_id'])) > -1:
+                return
         categories = 'Other'
         if 'categories' in item:
             categories = unidecode(item['categories'][0]).capitalize()
@@ -183,6 +187,8 @@ def make_playlist(args, item, counter, group):
             title += ' a=' + str(item['availability']) 
             if 'bitrate' in item:
                 title += " b=" + str(item['bitrate'])
+            if 'channel_id' in item:
+                title += " id=" + str(item['channel_id'])
         if args.hls:
             stream_type = 'manifest.m3u8'
         else:
@@ -252,11 +258,13 @@ def convert_json(args):
         # and finally main thing: m3u playlist output
         else:
             m3u = ''
+            last_match = ''
             if group_by_channels or 'items' in channels[0].keys():
                 for group in channels:
                     for item in group['items']:
-                        match = make_playlist(args, item, next(counter), group)
+                        match = make_playlist(args, item, next(counter), group, last_match)
                         if match:
+                            last_match = match
                             # If option "url" set we need only single item.
                             if args.url:
                                 yield match
@@ -267,8 +275,9 @@ def convert_json(args):
                         break
             else:
                 for item in channels:
-                    match = make_playlist(args, item, next(counter), group)
+                    match = make_playlist(args, item, next(counter), group, last_match)
                     if match:
+                        last_match = match
                         # If option "url" set we need only single item.
                         if args.url:
                             yield match
