@@ -70,7 +70,7 @@ def get_options(args={}):
     parser.add_argument(
         '-p', '--proxy',
         type=str,
-        default='localhost:6878',
+        default='api.acestream.me',
         help='proxy host:port to conntect to engine api.'
     )
     parser.add_argument(
@@ -123,10 +123,15 @@ def get_options(args={}):
         help='timezone shift.'
     )
     parser.add_argument(
-    '-m', '--hls',
-    action='store_true',
-    help='get HLS stream.'
+        '-m', '--hls',
+        action='store_true',
+        help='get HLS stream.'
     )
+    parser.add_argument(
+        '-A', '--api_version',
+        type=int, default=4,
+        help='api version.'
+    )    
     if __name__ == '__main__':
         opts = parser.parse_args()
     else:
@@ -153,7 +158,8 @@ def build_query(args, page):
            '&category=' + quote(args.category) + \
            '&page_size=' + str(args.page_size) + \
            '&group_by_channels=' + str(group_by_channels) + \
-           '&show_epg=' + str(show_epg)
+           '&show_epg=' + str(show_epg) + \
+           '&api_version=' + str(args.api_version) + '&api_key=test_api_key' 
 
 
 # fetch one page with json data
@@ -163,43 +169,47 @@ def fetch_page(args, query):
 
 
 # compose m3u playlist from json data and options
-def make_playlist(args, item, counter, group, last_match):
-    if item['availability_updated_at'] >= args.after \
-            and (not args.name or item['name'].strip() in args.name): 
-        if 'channel_id' in item and last_match:
-            if last_match.find(' tvg-id="' + str(item['channel_id'])) > -1:
-                return
-        categories = 'Other'
-        if 'categories' in item:
-            categories = unidecode(item['categories'][0]).capitalize()
+def make_playlist(args, counter, group):
+    if group['items'][0]['availability_updated_at'] >= args.after \
+            and (not args.name or group['name'].strip() in args.name): 
+        categories = ''
+        if 'categories' in group['items'][0]:            
+            for kind in group['items'][0]['categories']:
+                if group['items'][0]['categories'].index(kind) > 0:
+                    delim = ';'
+                else:
+                    delim = ''
+                categories += delim + kind       
+            categories = unidecode(categories).title()
         title = '#EXTINF:-1'        
-        if show_epg and 'channel_id' in item:
-            title += ' tvg-id="' + str(item['channel_id']) + '"'
+        if show_epg: 
+            if 'channel_id' in group:
+                title += ' tvg-id="' + str(group['channel_id']) + '"'
         title += ' tvg-chno="' + str(counter) + '"'    
         title += ' group-title="' + categories + '"'
         if 'icons' in group:
             title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
-        title += ',' + unidecode(item['name'])
+        title += ',' + unidecode(str(group['name']))
         if args.debug:
             title += ' [' + categories + ' ]'            
-            dt = datetime.fromtimestamp(item['availability_updated_at'])
+            dt = datetime.fromtimestamp(group['items'][0]['availability_updated_at'])
             title += ' ' + dt.isoformat(sep=' ')
-            title += ' a=' + str(item['availability']) 
-            if 'bitrate' in item:
-                title += " b=" + str(item['bitrate'])
-            if 'channel_id' in item:
-                title += " id=" + str(item['channel_id'])
+            title += ' a=' + str(group['items'][0]['availability']) 
+            if 'bitrate' in group['items'][0]:
+                title += " b=" + str(group['items'][0]['bitrate'])
+            if 'channel_id' in group:
+                title += " id=" + str(group['channel_id'])
         if args.hls:
             stream_type = 'manifest.m3u8'
         else:
             stream_type = 'getstream'
         if args.url:
             return ('http://' + args.target + '/ace/' + stream_type + '?infohash=' +
-                    item['infohash'])
+                    group['items'][0]['infohash'])
         else:
             return (title + '\n' +
                     'http://' + args.target + '/ace/' + stream_type + '?infohash=' +
-                    item['infohash'] + '\n')
+                    group['items'][0]['infohash'] + '\n')
 
 
 # build xml epg
@@ -209,7 +219,10 @@ def make_epg(args, group):
             int(group['epg'][0]['start'])).strftime('%Y%m%d%H%M%S')
         stop = datetime.fromtimestamp(
             int(group['epg'][0]['stop'])).strftime('%Y%m%d%H%M%S')
-        channel_id = str(group['items'][0]['channel_id'])
+        if args.api_version == 4:
+            channel_id = str(group['channel_id'])
+        else:    
+            channel_id = str(group['items'][0]['channel_id'])
         channel = ET.Element('channel')
         channel.set('id', channel_id)
         display = ET.SubElement(channel, 'display-name')
@@ -236,7 +249,10 @@ def get_channels(args):
     page = count()
     while True:
         query = build_query(args, next(page))
-        chunk = fetch_page(args, query)['result']['results']
+        if args.api_version == 4:
+            chunk = fetch_page(args, query)['results']
+        else:    
+            chunk = fetch_page(args, query)['result']['results']
         if len(chunk) == 0 or not group_by_channels and (
                 'infohash' in chunk[0].keys() and chunk[0][
                 'availability_updated_at'] < args.after):
@@ -258,32 +274,18 @@ def convert_json(args):
         # and finally main thing: m3u playlist output
         else:
             m3u = ''
-            last_match = ''
-            if group_by_channels or 'items' in channels[0].keys():
-                for group in channels:
-                    for item in group['items']:
-                        match = make_playlist(args, item, next(counter), group, last_match)
-                        if match:
-                            last_match = match
-                            # If option "url" set we need only single item.
-                            if args.url:
-                                yield match
-                                # Break iteration as soon as first matching item found.
-                                break
-                            m3u += match
-                    if match and args.url:
-                        break
-            else:
-                for item in channels:
-                    match = make_playlist(args, item, next(counter), group, last_match)
+            for group in channels:
+                if 'items' in group:
+                    match = make_playlist(args, next(counter), group)
                     if match:
-                        last_match = match
                         # If option "url" set we need only single item.
                         if args.url:
                             yield match
                             # Break iteration as soon as first matching item found.
                             break
                         m3u += match
+                    if match and args.url:
+                        break
             if m3u:
                 yield m3u.strip('\n')
 
