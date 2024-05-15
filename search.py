@@ -25,6 +25,12 @@ def get_args():
     args = get_options(opts)
     return args
 
+@app.route('/log')
+def log():
+    try:
+        return Response(open("nohup.out", "r").read(), content_type='text/plain')
+    except:
+        return Response("Log file not found", content_type='text/plain')
 
 # Use two routing rules of Your choice where playlist extension does matter.
 @app.route('/search.m3u')
