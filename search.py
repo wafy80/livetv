@@ -5,6 +5,9 @@ from flask import Flask, request, Response
 
 from acestream_search import main as engine, get_options, __version__
 
+import logging
+logging.basicConfig(filename='search.log',level=logging.DEBUG)
+
 app = Flask(__name__)
 if sys.version_info[0] > 2:
     def u_code(string):
@@ -28,7 +31,7 @@ def get_args():
 @app.route('/log')
 def log():
     try:
-        return Response(open("nohup.out", "r").read(), content_type='text/plain')
+        return Response(open("search.log", "r").read(), content_type='text/plain')
     except:
         return Response("Log file not found", content_type='text/plain')
 
