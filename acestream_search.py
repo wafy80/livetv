@@ -319,7 +319,8 @@ def main(args):
     elif args.json:
         yield '['
     elif not args.url:
-        yield '#EXTM3U url-tvg="' + args.prog + '?xml_epg=1&proxy=' + args.proxy + '"'
+        yield '#EXTM3U url-tvg="' + args.prog + '?xml_epg=1&proxy=' + args.proxy + \
+                                                          '&api_version=' + args.api_version + '"'
     # make a correct json list of pages
     for page in pager(args):
         if args.json:
