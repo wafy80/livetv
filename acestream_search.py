@@ -181,46 +181,47 @@ def check_proxy(url):
 
 # compose m3u playlist from json data and options
 def make_playlist(args, counter, group):
-    if group['items'][0]['availability_updated_at'] >= args.after \
-            and (not args.name or group['name'].strip() in args.name): 
-        categories = ''
-        if 'categories' in group['items'][0]:            
-            for kind in group['items'][0]['categories']:
-                if group['items'][0]['categories'].index(kind) > 0:
-                    delim = ';'
-                else:
-                    delim = ''
-                categories += delim + kind       
-            categories = unidecode(categories).title()
-        title = '#EXTINF:-1'        
-        if show_epg: 
-            if 'channel_id' in group:
-                title += ' tvg-id="' + str(group['channel_id']) + '"'
-        title += ' tvg-chno="' + str(counter) + '"'    
-        title += ' group-title="' + categories + '"'
-        if 'icons' in group:
-            title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
-        title += ',' + unidecode(str(group['name']))
-        if args.debug:
-            title += ' [' + categories + ' ]'            
-            dt = datetime.fromtimestamp(group['items'][0]['availability_updated_at'])
-            title += ' ' + dt.isoformat(sep=' ')
-            title += ' a=' + str(group['items'][0]['availability']) 
-            if 'bitrate' in group['items'][0]:
-                title += " b=" + str(group['items'][0]['bitrate'])
-            if 'channel_id' in group:
-                title += " id=" + str(group['channel_id'])
-        if args.hls:
-            stream_type = 'manifest.m3u8'
-        else:
-            stream_type = 'getstream'
-        if args.url:
-            return ('http://' + args.target + '/ace/' + stream_type + '?infohash=' +
-                    group['items'][0]['infohash'])
-        else:
-            return (title + '\n' +
-                    'http://' + args.target + '/ace/' + stream_type + '?infohash=' +
-                    group['items'][0]['infohash'] + '\n')
+    if len(group['items']) > 0:
+        if group['items'][0]['availability_updated_at'] >= args.after \
+                and (not args.name or group['name'].strip() in args.name): 
+            categories = ''
+            if 'categories' in group['items'][0]:            
+                for kind in group['items'][0]['categories']:
+                    if group['items'][0]['categories'].index(kind) > 0:
+                        delim = ';'
+                    else:
+                        delim = ''
+                    categories += delim + kind       
+                categories = unidecode(categories).title()
+            title = '#EXTINF:-1'        
+            if show_epg: 
+                if 'channel_id' in group:
+                    title += ' tvg-id="' + str(group['channel_id']) + '"'
+            title += ' tvg-chno="' + str(counter) + '"'    
+            title += ' group-title="' + categories + '"'
+            if 'icons' in group:
+                title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
+            title += ',' + unidecode(str(group['name']))
+            if args.debug:
+                title += ' [' + categories + ' ]'            
+                dt = datetime.fromtimestamp(group['items'][0]['availability_updated_at'])
+                title += ' ' + dt.isoformat(sep=' ')
+                title += ' a=' + str(group['items'][0]['availability']) 
+                if 'bitrate' in group['items'][0]:
+                    title += " b=" + str(group['items'][0]['bitrate'])
+                if 'channel_id' in group:
+                    title += " id=" + str(group['channel_id'])
+            if args.hls:
+                stream_type = 'manifest.m3u8'
+            else:
+                stream_type = 'getstream'
+            if args.url:
+                return ('http://' + args.target + '/ace/' + stream_type + '?infohash=' +
+                        group['items'][0]['infohash'])
+            else:
+                return (title + '\n' +
+                        'http://' + args.target + '/ace/' + stream_type + '?infohash=' +
+                        group['items'][0]['infohash'] + '\n')
 
 
 # build xml epg
