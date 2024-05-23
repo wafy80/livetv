@@ -70,7 +70,7 @@ def get_options(args={}):
     parser.add_argument(
         '-p', '--proxy',
         type=str,
-        default='api.acestream.me',
+        default='localhost:6878',
         help='proxy host:port to conntect to engine api.'
     )
     parser.add_argument(
@@ -129,7 +129,7 @@ def get_options(args={}):
     )
     parser.add_argument(
         '-A', '--api_version',
-        type=int, default=4,
+        type=str, default='1',
         help='api version.'
     )    
     if __name__ == '__main__':
@@ -143,6 +143,9 @@ def get_options(args={}):
         opts.help = parser.format_help()
     if 'usage' in args:
         opts.usage = parser.format_usage()
+    if not check_proxy('http://' + opts.proxy + '/webui/api/service?method=get_version'):
+        opts.proxy='api.acestream.me'
+        opts.api_version='4'
     return opts
 
 
@@ -159,7 +162,7 @@ def build_query(args, page):
            '&page_size=' + str(args.page_size) + \
            '&group_by_channels=' + str(group_by_channels) + \
            '&show_epg=' + str(show_epg) + \
-           '&api_version=' + str(args.api_version) + '&api_key=test_api_key' 
+           '&api_version=' + args.api_version + '&api_key=test_api_key' 
 
 
 # fetch one page with json data
@@ -167,6 +170,14 @@ def fetch_page(args, query):
     url = endpoint(args) + '?' + query
     return json.loads(urlopen(url).read().decode('utf8'))
 
+def check_proxy(url):
+    try:
+        result = json.loads(urlopen(url).read().decode('utf8'))
+        if 'error' in result:
+            if result['error'] == None:
+                return True
+    except:
+        return False
 
 # compose m3u playlist from json data and options
 def make_playlist(args, counter, group):
@@ -219,7 +230,7 @@ def make_epg(args, group):
             int(group['epg'][0]['start'])).strftime('%Y%m%d%H%M%S')
         stop = datetime.fromtimestamp(
             int(group['epg'][0]['stop'])).strftime('%Y%m%d%H%M%S')
-        if args.api_version == 4:
+        if args.api_version == '4':
             channel_id = str(group['channel_id'])
         else:    
             channel_id = str(group['items'][0]['channel_id'])
@@ -249,7 +260,7 @@ def get_channels(args):
     page = count()
     while True:
         query = build_query(args, next(page))
-        if args.api_version == 4:
+        if args.api_version == '4':
             chunk = fetch_page(args, query)['results']
         else:    
             chunk = fetch_page(args, query)['result']['results']
@@ -320,7 +331,7 @@ def main(args):
         yield '['
     elif not args.url:
         yield '#EXTM3U url-tvg="' + args.prog + '?xml_epg=1&proxy=' + args.proxy + \
-                                                          '&api_version=' + str(args.api_version) + '"'
+                                                          '&api_version=' + args.api_version + '"'
     # make a correct json list of pages
     for page in pager(args):
         if args.json:
