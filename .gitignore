@@ -7,3 +7,5 @@
 /build
 /dist
 *.spec
+/api/__pycache__
+*.log
