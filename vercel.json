@@ -10,9 +10,12 @@
             "src": "/(.*)",
             "dest": "/"
         }
+    ],
+    "rewrites": [
+        { 
+            "source": "/(.*)", 
+            "destination": "search" 
+        }
     ]
-  "rewrites": [
-    { "source": "/(.*)", "destination": "search" }
-  ]
     
 }
