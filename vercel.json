@@ -1,21 +1,5 @@
 {
-    "builds": [
-        {
-            "src": "search.py",
-            "use": "@vercel/python"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "/"
-        }
-    ],
-    "rewrites": [
-        { 
-            "source": "/(.*)", 
-            "destination": "search" 
-        }
-    ]
-    
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
+  ]
 }
