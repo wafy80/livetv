@@ -1,4 +1,10 @@
 {
+  "builds": [
+    {
+      "src": "search.py",
+      "use": "@vercel/python"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
