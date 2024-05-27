@@ -2,10 +2,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/search"
+      "destination": "search"
     }
-  ],
-  "env": {
-    "PYTHONPATH": "api/"
-  }
+  ]
 }
