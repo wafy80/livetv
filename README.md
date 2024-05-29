@@ -15,8 +15,9 @@ python3 search.py
 ```
 then go to
 ```
-http://127.0.0.1:8088/search.m3u
+http://127.0.0.1:6880
 ```
+and follow the instructions
 
 ## References:
 
