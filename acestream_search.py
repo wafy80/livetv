@@ -194,9 +194,13 @@ def make_playlist(args, counter, group):
                     categories += delim + kind       
                 categories = unidecode(categories).title()
             title = '#EXTINF:-1'        
-            if show_epg: 
-                if 'channel_id' in group:
-                    title += ' tvg-id="' + str(group['channel_id']) + '"'
+            if show_epg:
+                if args.api_version == '4': 
+                    if 'channel_id' in group:
+                        title += ' tvg-id="' + str(group['channel_id']) + '"'
+                else:        
+                    if 'channel_id' in group['items'][0]:
+                        title += ' tvg-id="' + str(group['items'][0]['channel_id']) + '"'   
             title += ' tvg-chno="' + str(counter) + '"'    
             title += ' group-title="' + categories + '"'
             if 'icons' in group:
@@ -209,8 +213,6 @@ def make_playlist(args, counter, group):
                 title += ' a=' + str(group['items'][0]['availability']) 
                 if 'bitrate' in group['items'][0]:
                     title += " b=" + str(group['items'][0]['bitrate'])
-                if 'channel_id' in group:
-                    title += " id=" + str(group['channel_id'])
             if args.hls:
                 stream_type = 'manifest.m3u8'
             else:
@@ -238,7 +240,7 @@ def make_epg(args, group):
         channel = ET.Element('channel')
         channel.set('id', channel_id)
         display = ET.SubElement(channel, 'display-name')
-        display.text = str(group['name'])
+        display.text = unidecode(str(group['name']))
         if 'icon' in group:
             icon = ET.SubElement(channel, 'icon')
             icon.set('src', group['icon'])
