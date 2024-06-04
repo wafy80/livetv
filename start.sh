@@ -1,5 +1,7 @@
 #!/bin/bash
+pip install --no-cache-dir --upgrade gunicorn
+cd /opt/acestream/playlist
 set -m
-python3 /opt/acestream/playlist/search.py &
+gunicorn -w 2 -b 0.0.0.0:6880 --access-logfile search.log search:app &
 /opt/acestream/start-engine --client-console --bind-all
 fg %1
