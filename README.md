@@ -1,6 +1,6 @@
 # acestream-playlist
 Produces acestream m3u playlist, xml epg or json data. 
-You need acestream engine to get it working. If You have no acestream and don't want to install, you can use https://github.com/vstavrinov/acestream-service instead of acestream-search.
+You need acestream engine to get it working. If You have no acestream and don't want to install, you can use https://hub.docker.com/r/wafy80/acestream instead of acestream-playlist.
 
 ## Installation:
 
