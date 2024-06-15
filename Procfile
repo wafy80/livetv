@@ -1,1 +1,1 @@
-python3 search.py
+run:search
