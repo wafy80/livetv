@@ -1,1 +1,1 @@
-web: python search.py
+web: python search.py ${PORT}
