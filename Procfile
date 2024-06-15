@@ -1,1 +1,1 @@
-run:search
+web: python search.py
