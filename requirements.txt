@@ -2,3 +2,4 @@ Flask
 lxml
 setuptools
 Unidecode
+gunicorn
