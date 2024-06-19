@@ -30,7 +30,7 @@ def get_args():
 
 @app.route('/')
 def home():
-    return 'Put this link into your favourite IPTV player:<br>' + request.base_url + 'search.m3u'
+    return 'Put this link into your favourite IPTV player:<br>' + request.root_url + 'search.m3u'
 
 @app.route('/log')
 def log():
