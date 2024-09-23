@@ -205,6 +205,8 @@ def make_playlist(args, counter, group):
             title += ' group-title="' + categories + '"'
             if 'icons' in group:
                 title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
+            else:
+                title += ' tvg-logo="https://placehold.co/100/lightgray/black.png?font=source-sans-pro&text=' + unidecode(str(group['name'])).replace(" ","\\n") + '"'        
             title += ',' + unidecode(str(group['name']))
             if args.debug:
                 title += ' [' + categories + ' ]'            
