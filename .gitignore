@@ -2,5 +2,9 @@
 /__pycache__
 /build
 /dist
+/tmp
 *.spec
 *.log
+*.w3u
+*.out
+*.m3u

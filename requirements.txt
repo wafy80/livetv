@@ -3,3 +3,10 @@ lxml
 setuptools
 Unidecode
 gunicorn
+bs4
+transliterate
+acestream
+tor_proxy
+pysocks
+requests
+schedule
