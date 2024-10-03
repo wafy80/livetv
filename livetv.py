@@ -344,7 +344,7 @@ for file in files:
         try:
             aceimg = search.results[0].icons[0]['url']
         except:
-            aceimg = ''
+            aceimg = 'https://placehold.co/100/lightgray/black.png?font=source-sans-pro&text=' + chname
         fileace.close()    
         fileace = open(file,"w", encoding="utf8")
         fileace.write(chname + '\n')
