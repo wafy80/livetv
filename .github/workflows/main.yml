@@ -1,8 +1,9 @@
 name: Build Docker Image
 on:
   push:
-    branches:
-      - master
+    paths:
+    - '**.py'
+    - 'Dockerfile'      
 jobs:
     build:
       name: push docker image to docker hub
