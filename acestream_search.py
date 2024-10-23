@@ -2,6 +2,7 @@ import json
 from itertools import count
 from datetime import datetime, timedelta
 import argparse
+import os
 import lxml.etree as ET
 import time
 from unidecode import unidecode
@@ -70,7 +71,7 @@ def get_options(args={}):
     parser.add_argument(
         '-p', '--proxy',
         type=str,
-        default='localhost:6878',
+        default=f"{os.getenv('ACE_ENGINE','127.0.0.1')}:{os.getenv('ACE_PORT','6878')}",
         help='proxy host:port to conntect to engine api.'
     )
     parser.add_argument(
