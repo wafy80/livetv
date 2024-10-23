@@ -1,4 +1,6 @@
 # Anchor extraction from HTML document
+import json
+from urllib.request import urlopen
 from bs4 import BeautifulSoup
 from requests import get
 from datetime import datetime, timedelta
@@ -29,70 +31,30 @@ def getchname(aslink):
     chname = aslink.replace("acestream://", "")
     
     try:
-        chname = open("tmp/" + chname + ".ace", "r", encoding='utf-8').readline().strip()
-        wlog("C - " + chname)
-        
+        url = f"http://{ACE_ENGINE}:{ACE_PORT}/server/api?api_version=3&method=analyze_content&query=acestream:?content_id={chname}"
+        result = json.loads(urlopen(url).read().decode('utf8'))
+        return result['result']['title']
     except:
-        #translator = Translator()        
-        time.sleep(0.1)
-        engine = Engine('acestreamengine', client_console=True)
-        time.sleep(0.1)
-        server = Server(host='127.0.0.1', port=6878)
-        time.sleep(0.1)
-        engine.start()
-        time.sleep(0.1)
-        stream = Stream(server, id=chname)
-        time.sleep(0.1)
-        stream.start()
-        time.sleep(0.1)
-        chid = chname
-        chname=stream.info.name
-        if chname is None:
-            chname = chid
-        
-        """
-        search = Search(server, query=chname, group_by_channels=1, show_epg=1)
-        search.get(page=0)
-        try:
-            aceimg = search.results[0].icons[0]['url']
-        except:
-            aceimg=''    
-        aceid = str(search.results[0].items[0].channel_id)      
-        """
-        
-        #chname = translator.translate(chname).text
-        time.sleep(0.1)
-        
-        stream.stop()
-        time.sleep(0.1)
-        engine.stop()
-        time.sleep(0.1)
-        
-        fileace = open("tmp/" + chid + ".ace", "w", encoding='utf-8')
-        fileace.write(chname + '\n')
-        #fileace.write(aceimg + '\n')
-        #fileace.write(aceid)
-        fileace.close()
-        
-        wlog("N - " + chname)
-        time.sleep(0.1)
+        return chname    
 
-    totrans = chname
+def getchlogo(chname):
+    engine = Engine('acestreamengine', client_console=True)
+    server = Server(host=ACE_ENGINE, port=ACE_PORT)
+    engine.start()        
+    search = Search(server, query=chname, group_by_channels=1, show_epg=1)
+    search.get(page=0)
     try:
-        translated = translit(totrans,reversed=True)
+        aceimg = search.results[0].icons[0]['url']
     except:
-        translated = totrans   
-        
-    return translated        
+        aceimg = 'https://placehold.co/100/lightgray/black.png?font=source-sans-pro&text=' + chname
 
-def getchlogo(aceid):
-    with open("tmp/" + aceid + ".ace", "r", encoding='utf-8') as fileace:
-        fileace.readline()
-        fileace.readline()
-        chlogo=fileace.readline()
-    return chlogo
+    return aceimg
 
 wlog("INIZIO")
+
+ACE_ENGINE=os.getenv('ACE_ENGINE','127.0.0.1')
+ACE_PORT=os.getenv('ACE_PORT','6878')
+wlog(f"engine:{ACE_ENGINE} port:{ACE_PORT}")
 
 locale.setlocale(locale.LC_TIME, "it_IT.UTF-8") 
 d = datetime.now()
@@ -253,10 +215,17 @@ for anchor in upcoming.find_all('a'):
                         else:
                             continue    
 
-                        logoch = getchlogo(link.replace("acestream://", ""))
+                        logoch = getchlogo(channel)
                         if logoch != "":
                             logolink = logoch  
                         
+                        totrans = channel
+                        try:
+                            translated = translit(totrans,reversed=True)
+                        except:
+                            translated = totrans                               
+                        channel = translated    
+                                            
                         strprintace += '{'
                         strprintace += f'"name":"{channel}",'
                         if logolink is None:
@@ -318,54 +287,6 @@ dt = dt[:dt.find(".")]
 
 with open("livetv.w3u", "w", encoding='utf-8') as filedone:
 	filedone.write(strresult.replace("H0:M0:S0",dt))                        
-
-filem3u = open("livetv.m3u", "w", encoding='utf-8')
-filem3u.write('#EXTM3U url-tvg="http://:/search.m3u?xml_epg=1"' + '\n')
-
-files = glob.glob("tmp/*.ace")
-for file in files:
-    fileace = open(file, encoding="utf8")
-    chname = fileace.readline().strip()
-    if chname=='' or len(chname) == 40:
-        fileace.close()
-        os.remove(file)
-        continue    
-    aceid = fileace.readline().strip()
-    if aceid=='':
-        engine = Engine('acestreamengine', client_console=True)
-        server = Server(host='127.0.0.1', port=6878)
-        engine.start()        
-        search = Search(server, query=chname, group_by_channels=1, show_epg=1)
-        search.get(page=0)
-        try:
-            aceid = str(search.results[0].items[0].channel_id)
-        except:          
-            aceid = 'None'
-        try:
-            aceimg = search.results[0].icons[0]['url']
-        except:
-            aceimg = 'https://placehold.co/100/lightgray/black.png?font=source-sans-pro&text=' + chname
-        fileace.close()    
-        fileace = open(file,"w", encoding="utf8")
-        fileace.write(chname + '\n')
-        fileace.write(aceid + '\n')
-        fileace.write(aceimg)
-    else:
-        aceimg = fileace.readline().strip()            
-    fileace.close()
-
-    totrans = chname
-    try:
-        translated = translit(totrans,reversed=True)
-    except:
-        translated = totrans   
-
-    title = f'#EXTINF:-1 tvg-id="{aceid}" tvg-logo="{aceimg}",'
-    filem3u.write(title + translated + '\n')
-    filename = os.path.splitext(os.path.basename(file))[0]
-    filem3u.write('http://127.0.0.1:6878/ace/getstream?id=' + filename + '\n')
-    
-filem3u.close()
 
 localfiles = glob.glob("tmp/*.html")
 for localfile in localfiles:

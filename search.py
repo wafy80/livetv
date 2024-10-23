@@ -29,22 +29,20 @@ def get_args():
 
 @app.route('/')
 def home():
-    return 'Put this link into your favourite IPTV player:<br>' + request.base_url + 'search.m3u'
+    return 'IPTV list: ' + request.base_url + 'search.m3u <br>' + \
+           'Wiseplay list: ' + request.base_url + 'livetv.w3u'
 
-@app.route('/log')
-def log():
-    try:
-        return Response(open("search.log", "r").read(), content_type='text/plain')
-    except:
-        return Response("Log file not found", content_type='text/plain')
+@app.route('/search.log')
+def searchlog():
+    return Response(open("search.log", "r").read(), content_type='text/plain')
+
+@app.route('/livetv.log')
+def livetvlog():
+    return Response(open("livetv.log", "r").read(), content_type='text/plain')
 
 @app.route("/livetv.w3u")
 def livetv():
     return open("livetv.w3u", "r", encoding="utf8").read().replace("http://:",request.base_url)
-
-@app.route("/livetv.m3u")
-def iptv():
-    return open("livetv.m3u", "r", encoding="utf8").read().replace("http://:",request.base_url).replace("/livetv.m3u","")
 
 # Use two routing rules of Your choice where playlist extension does matter.
 @app.route('/search.m3u')
