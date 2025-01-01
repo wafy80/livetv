@@ -54,6 +54,7 @@ wlog("INIZIO")
 
 ACE_ENGINE=os.getenv('ACE_ENGINE','127.0.0.1')
 ACE_PORT=os.getenv('ACE_PORT','6878')
+TZ_SHIFT=os.getenv('TZ_SHIFT','0')
 wlog(f"engine:{ACE_ENGINE} port:{ACE_PORT}")
 
 locale.setlocale(locale.LC_TIME, "it_IT.UTF-8") 
@@ -98,7 +99,9 @@ for anchor in upcoming.find_all('a'):
             #    continue
                         
             dtevent = datetime.strptime(data + " " + str(d.year) + " " + ora, "%d %B %Y %H:%M")
-            #dtevent -= timedelta(hours = 1)
+            if TZ_SHIFT != '0':  
+                dtevent -= timedelta(hours = float(TZ_SHIFT))
+
             if d < dtevent:
                 diff = dtevent - d  
                 if diff.seconds / 60  > 30:
