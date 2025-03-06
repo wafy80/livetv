@@ -30,9 +30,9 @@ def get_args():
     args = get_options(opts)
     return args
 
-@app.route('/home')
+@app.route('/')
 def home():
-    baseurl = request.base_url.replace('/home','/')
+    baseurl = request.base_url
     return '''
     <html>
         <head>
@@ -40,8 +40,8 @@ def home():
         </head>
         <body>
             <h1>Welcome to Live TV Playlist</h1>
-            <p>IPTV list: <a href="''' + baseurl + '''search.m3u">''' + baseurl + '''search.m3u</a></p>
-            <p>Wiseplay list: <a href="''' + baseurl + '''livetv.w3u">''' + baseurl + '''livetv.w3u</a></p>
+            <p>IPTV list: <a href="''' + baseurl + '''search.m3u">''' + baseurl + '''m3u</a></p>
+            <p>Wiseplay list: <a href="''' + baseurl + '''livetv.w3u">''' + baseurl + '''w3u</a></p>
         </body>
     </html>
     '''
@@ -54,12 +54,12 @@ def searchlog():
 def livetvlog():
     return Response(open("livetv.log", "r").read(), content_type='text/plain')
 
-@app.route("/livetv.w3u")
+@app.route("/w3u")
 def livetv():
     return open("livetv.w3u", "r", encoding="utf8").read().replace("http://:",request.base_url)
 
 # Use two routing rules of Your choice where playlist extension does matter.
-@app.route('/')
+@app.route('/m3u')
 @app.route('/search.m3u')
 @app.route('/search.m3u8')
 def main():
