@@ -5,12 +5,14 @@ import argparse
 import os
 import lxml.etree as ET
 import time
+from requests import get
 from unidecode import unidecode
+import cust as c
 
 # workaround for python2 vs python3 compatibility
 from urllib.request import urlopen, quote
 
-__version__ = 'v0.1.0-alpha'
+__version__ = 'v1.0.0'
 
 show_epg = 1
 group_by_channels = 1
@@ -188,27 +190,44 @@ def make_playlist(args, counter, group):
             categories = ''
             if 'categories' in group['items'][0]:            
                 for kind in group['items'][0]['categories']:
-                    if group['items'][0]['categories'].index(kind) > 0:
-                        delim = ';'
-                    else:
-                        delim = ''
-                    categories += delim + kind       
-                categories = unidecode(categories).title()
+                    if kind == '': kind = 'Other'
+                    categories += kind + ';'                           
+                categories = unidecode(categories[:-1]).title()
+            if categories == '': categories = 'Other'
             title = '#EXTINF:-1'        
+            chid = group['items'][0]['infohash'][:10]            
             if show_epg:
                 if args.api_version == '4': 
                     if 'channel_id' in group:
-                        title += ' tvg-id="' + str(group['channel_id']) + '"'
+                        chid = str(group['channel_id']) 
                 else:        
                     if 'channel_id' in group['items'][0]:
-                        title += ' tvg-id="' + str(group['items'][0]['channel_id']) + '"'   
-            title += ' tvg-chno="' + str(counter) + '"'    
+                        chid = str(group['items'][0]['channel_id'])
+            tmpcat = c.get_cat(unidecode(str(group['name'])))
+            if tmpcat != "":
+                categories = tmpcat
+            order = counter
+            tvglogo = ''
+            iscust = False        
+            tmpchid = c.trascochid(unidecode(str(group['name'])))
+            if tmpchid:
+                channel_id, order, tvglogo = tmpchid
+                chid = channel_id
+                iscust = True
+            title += ' tvg-id="' + chid + '"'               
+            title += ' tvg-chno="' + str(order) + '"'    
             title += ' group-title="' + categories + '"'
-            if 'icons' in group:
-                title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
+            if tvglogo != "":
+                title += ' tvg-logo="' + tvglogo + '"'
             else:
-                title += ' tvg-logo="https://placehold.co/100/lightgray/black.png?font=source-sans-pro&text=' + unidecode(str(group['name'])).replace(" ","\\n") + '"'        
-            title += ',' + unidecode(str(group['name']))
+                if 'icons' in group:
+                    title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
+                else:
+                    title += ' tvg-logo="https://placehold.co/100/lightgray/black.png?font=source-sans-pro&text=' + unidecode(str(group['name'])).replace(" ","\\n") + '"'        
+            title += ',"' 
+            if iscust:
+                title += '.' + str(order) + '. ' 
+            title += unidecode(str(group['name'])) + '"'
             if args.debug:
                 title += ' [' + categories + ' ]'            
                 dt = datetime.fromtimestamp(group['items'][0]['availability_updated_at'])
@@ -231,35 +250,69 @@ def make_playlist(args, counter, group):
 
 # build xml epg
 def make_epg(args, group):
-    if 'epg' in group and (not args.name or group['name'] in args.name):
-        start = datetime.fromtimestamp(
-            int(group['epg'][0]['start'])).strftime('%Y%m%d%H%M%S')
-        stop = datetime.fromtimestamp(
-            int(group['epg'][0]['stop'])).strftime('%Y%m%d%H%M%S')
-        if args.api_version == '4':
-            channel_id = str(group['channel_id'])
-        else:    
-            channel_id = str(group['items'][0]['channel_id'])
+    xmlstr=""
+    try:
+        tmpchid = c.trascochid(unidecode(str(group['name'])))
+        if tmpchid:
+            channel_id, order, tvglogo = tmpchid
+        else:
+            raise Exception('No channel id')   
         channel = ET.Element('channel')
         channel.set('id', channel_id)
         display = ET.SubElement(channel, 'display-name')
-        display.text = unidecode(str(group['name']))
-        if 'icon' in group:
-            icon = ET.SubElement(channel, 'icon')
-            icon.set('src', group['icon'])
-        programme = ET.Element('programme')
-        programme.set('start', start + ' ' + args.zone)
-        programme.set('stop', stop + ' ' + args.zone)
-        programme.set('channel', channel_id)
-        title = ET.SubElement(programme, 'title')
-        title.text = unidecode(group['epg'][0]['name'])
-        if 'description' in group['epg']:
-            desc = ET.SubElement(programme, 'desc')
-            desc.text = group['epg'][0]['description']
-        xmlstr = ET.tostring(channel, encoding="unicode", pretty_print=True)
-        xmlstr += ET.tostring(programme, encoding="unicode", pretty_print=True)
-        return '  ' + xmlstr.replace('\n', '\n  ')
+        display.text = str(group['name'])
 
+        localfile="tmp/" + channel_id + ".xml"
+        if (os.path.exists(localfile) and ((time.time() - os.path.getctime(localfile)) / 60) > 360) or not os.path.exists(localfile):
+            req = get('https://epg.pw/api/epg.xml?channel_id=' + channel_id).text
+            with open(localfile, "w", encoding='utf-8') as filew:
+                filew.write(req)
+        req = ""
+        f = open(localfile, "r", encoding="utf8")
+        for fl in f:
+            fl = c.fixepg(str(group['name']),fl)
+            req += fl
+        if xmlstr == "":
+            inizioepg = req.find('<channel') 
+        else:    
+            inizioepg = req.find('</channel>') + 10
+        fineepg = req.find('</tv>')
+        progch = req[inizioepg:fineepg].replace('+0000',c.get_shift(channel_id))        
+        xmlstr += progch
+        
+    except:            
+        if 'epg' in group and (not args.name or group['name'] in args.name):
+            start = datetime.fromtimestamp(
+                int(group['epg'][0]['start'])).strftime('%Y%m%d%H%M%S')
+            stop = datetime.fromtimestamp(
+                int(group['epg'][0]['stop'])).strftime('%Y%m%d%H%M%S')
+            if args.api_version == '4':
+                channel_id = str(group['channel_id'])
+            else:    
+                channel_id = str(group['items'][0]['channel_id'])
+            channel = ET.Element('channel')
+            channel.set('id', channel_id)
+            display = ET.SubElement(channel, 'display-name')
+            display.text = unidecode(str(group['name']))
+            if 'icon' in group:
+                icon = ET.SubElement(channel, 'icon')
+                icon.set('src', group['icon'])
+            programme = ET.Element('programme')
+            programme.set('start', start + ' ' + args.zone)
+            programme.set('stop', stop + ' ' + args.zone)
+            programme.set('channel', channel_id)
+            title = ET.SubElement(programme, 'title')
+            title.text = unidecode(group['epg'][0]['name'])
+            if 'description' in group['epg']:
+                desc = ET.SubElement(programme, 'desc')
+                desc.text = group['epg'][0]['description']
+            xmlstr = ET.tostring(channel, encoding="unicode", pretty_print=True)
+            xmlstr += ET.tostring(programme, encoding="unicode", pretty_print=True)
+
+    if xmlstr.strip() == "":
+        return ''
+    else:
+        return '  ' + xmlstr.replace('\n', '\n  ')
 
 # channels stream generator
 def get_channels(args):
@@ -279,7 +332,7 @@ def get_channels(args):
 
 # iterate the channels generator
 def convert_json(args):
-    counter = count(1)
+    counter = count(2000)
     for channels in get_channels(args):
         # output raw json data
         if args.json:

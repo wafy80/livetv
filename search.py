@@ -6,6 +6,9 @@ from flask import Flask, request, Response
 from acestream_search import main as engine, get_options, __version__
 
 import logging
+import os
+import time
+import hashlib
 logging.basicConfig(filename='search.log',level=logging.DEBUG)
 
 app = Flask(__name__)
@@ -27,10 +30,21 @@ def get_args():
     args = get_options(opts)
     return args
 
-@app.route('/')
+@app.route('/home')
 def home():
-    return 'IPTV list: ' + request.base_url + 'search.m3u <br>' + \
-           'Wiseplay list: ' + request.base_url + 'livetv.w3u'
+    baseurl = request.base_url.replace('/home','/')
+    return '''
+    <html>
+        <head>
+            <title>Live TV Playlist</title>
+        </head>
+        <body>
+            <h1>Welcome to Live TV Playlist</h1>
+            <p>IPTV list: <a href="''' + baseurl + '''search.m3u">''' + baseurl + '''search.m3u</a></p>
+            <p>Wiseplay list: <a href="''' + baseurl + '''livetv.w3u">''' + baseurl + '''livetv.w3u</a></p>
+        </body>
+    </html>
+    '''
 
 @app.route('/search.log')
 def searchlog():
@@ -45,6 +59,7 @@ def livetv():
     return open("livetv.w3u", "r", encoding="utf8").read().replace("http://:",request.base_url)
 
 # Use two routing rules of Your choice where playlist extension does matter.
+@app.route('/')
 @app.route('/search.m3u')
 @app.route('/search.m3u8')
 def main():
@@ -57,9 +72,29 @@ def main():
     else:
         content_type = 'application/x-mpegURL'
 
-    def generate():
-        for page in engine(args):
-            yield page + '\n'
+    CACHE_DIR = 'tmp/cache'
+    CACHE_EXPIRY = 300
+    if not os.path.exists(CACHE_DIR):
+        os.makedirs(CACHE_DIR)
+
+    def generate():               
+        cache_key = hashlib.md5(str(args).encode('utf-8')).hexdigest()
+        cache_file = os.path.join(CACHE_DIR, cache_key)
+        temp_cache_file = cache_file + '.tmp'
+        if os.path.exists(cache_file) and (time.time() - os.path.getmtime(cache_file)) < CACHE_EXPIRY:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    yield line
+        else:
+            try:
+                with open(temp_cache_file, 'w', encoding='utf-8') as f:                              
+                    for page in engine(args):
+                        f.write(page + '\n')
+                os.rename(temp_cache_file, cache_file)
+            finally: 
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        yield line
 
     if 'version' in args:
         return Response(__version__ + '\n', content_type='text/plain')
@@ -82,4 +117,4 @@ if __name__ == '__main__':
         port = sys.argv[1]
     else:
         port = 6880
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
