@@ -55,7 +55,9 @@ wlog("INIZIO")
 ACE_ENGINE=os.getenv('ACE_ENGINE','127.0.0.1')
 ACE_PORT=os.getenv('ACE_PORT','6878')
 TZ_SHIFT=os.getenv('TZ_SHIFT','0')
-wlog(f"engine:{ACE_ENGINE} port:{ACE_PORT}")
+if time.localtime().tm_isdst == 0:
+    TZ_SHIFT = str(float(TZ_SHIFT) + 1)
+wlog(f"engine:{ACE_ENGINE} port:{ACE_PORT} tz:{TZ_SHIFT}")
 
 locale.setlocale(locale.LC_TIME, "it_IT.UTF-8") 
 d = datetime.now()

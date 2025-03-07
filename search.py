@@ -40,8 +40,8 @@ def home():
         </head>
         <body>
             <h1>Welcome to Live TV Playlist</h1>
-            <p>IPTV list: <a href="''' + baseurl + '''search.m3u">''' + baseurl + '''m3u</a></p>
-            <p>Wiseplay list: <a href="''' + baseurl + '''livetv.w3u">''' + baseurl + '''w3u</a></p>
+            <p>IPTV list: <a href="''' + baseurl + '''m3u">''' + baseurl + '''m3u</a></p>
+            <p>Wiseplay list: <a href="''' + baseurl + '''w3u">''' + baseurl + '''w3u</a></p>
         </body>
     </html>
     '''
