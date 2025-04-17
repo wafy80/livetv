@@ -3,7 +3,8 @@ on:
   push:
     paths:
     - '**.py'
-    - 'Dockerfile'      
+    - 'Dockerfile'
+    - 'requirements.txt'
 jobs:
     build:
       name: push docker image to docker hub
