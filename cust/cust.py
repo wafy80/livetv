@@ -7,7 +7,7 @@ import re
 import html
 
 def trascochid(chid):
-    with open('cust.json', 'r') as f:
+    with open('cust/cust.json', 'r') as f:
         switcher = json.load(f)
     newchid = switcher.get(chid, "")
     return newchid
@@ -17,15 +17,20 @@ def get_shift(chid):
     return tsh
 
 def fixepg(epgch, epgline):    
-    if epgline.lower().find('<title lang="zh">') > -1:
+    if epgline.lower().find('<title') > -1:
         totrans=epgline.replace('⋗','->').replace(' lang="zh"','')
         totrans=get_cont_tag(totrans, 'title')[0]
+
+        #translated = translate(totrans)
+
         try:
             translated = unidecode(totrans)
         except:
             translated = totrans    
+                
         translated = html.escape(translated)
         epgline = f"<title>{translated}</title>"
+
     return epgline
 
 def get_cat(chname):
@@ -99,3 +104,31 @@ def get_cont_tag(testo, tag):
     pattern = rf'<{tag}>(.*?)</{tag}>'
     matches = re.findall(pattern, testo)
     return matches
+
+def translate(text):
+    if text is None:
+        return None
+    try:
+        if not text.strip():
+            print("Skipping empty or whitespace-only text.")
+            return text
+
+        response = requests.post(
+            "http://127.0.0.1:5000/translate",
+            json={
+            "q": text,
+            "source": "auto",
+            "target": "it"
+            },
+            headers={"Content-Type": "application/json"}
+        )
+        response.raise_for_status()
+        print(f"Translating: {text} -> {response.json().get('translatedText')}") 
+
+        return response.json().get("translatedText", text)
+    except requests.RequestException as e:
+        print(f"Error translating text: {e}")
+        return text
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return text

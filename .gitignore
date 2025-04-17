@@ -1,8 +1,9 @@
 ﻿/.vs*
-/__pycache__
+__pycache__
 /build
 /dist
 /tmp
+/cust/epg
 *.spec
 *.log
 *.w3u

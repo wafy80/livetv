@@ -88,10 +88,10 @@ for anchor in upcoming.find_all('a'):
         lstlink += linkfind
         if link.find("/eventinfo") > 0 and anchor.get('class')[0] == "live":
             parent = anchor.parent
-            orario = parent.find('span',{"class":"evdesc"}).text.split(' à ')
+            orario = parent.find('span',{"class":"evdesc"}).text.split(' а ')
             data = orario[0]
             ora = orario[1]
-            ora = ora[0:ora.find('\r')]
+            ora = ora[0:ora.find('\n')]
 
             torneo = orario[1]
             torneo = torneo[torneo.find('(')+1:len(torneo)-1]

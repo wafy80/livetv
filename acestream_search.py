@@ -7,12 +7,12 @@ import lxml.etree as ET
 import time
 from requests import get
 from unidecode import unidecode
-import cust as c
+import cust.cust as c
 
 # workaround for python2 vs python3 compatibility
 from urllib.request import urlopen, quote
 
-__version__ = 'v1.0.0'
+__version__ = 'v1.0.1'
 
 show_epg = 1
 group_by_channels = 1
@@ -207,19 +207,16 @@ def make_playlist(args, counter, group):
             if tmpcat != "":
                 categories = tmpcat
             order = counter
-            tvglogo = ''
             iscust = False        
             tmpchid = c.trascochid(unidecode(str(group['name'])))
             if tmpchid:
-                channel_id, order, tvglogo = tmpchid
+                channel_id, order = tmpchid
                 chid = channel_id
                 iscust = True
             title += ' tvg-id="' + chid + '"'               
             title += ' tvg-chno="' + str(order) + '"'    
             title += ' group-title="' + categories + '"'
-            if tvglogo != "":
-                title += ' tvg-logo="' + tvglogo + '"'
-            else:
+            if not iscust:
                 if 'icons' in group:
                     title += ' tvg-logo="' + group['icons'][0]['url'] + '"'
                 else:
@@ -254,7 +251,7 @@ def make_epg(args, group):
     try:
         tmpchid = c.trascochid(unidecode(str(group['name'])))
         if tmpchid:
-            channel_id, order, tvglogo = tmpchid
+            channel_id, order = tmpchid
         else:
             raise Exception('No channel id')   
         channel = ET.Element('channel')
@@ -262,11 +259,14 @@ def make_epg(args, group):
         display = ET.SubElement(channel, 'display-name')
         display.text = str(group['name'])
 
-        localfile="tmp/" + channel_id + ".xml"
-        if (os.path.exists(localfile) and ((time.time() - os.path.getctime(localfile)) / 60) > 360) or not os.path.exists(localfile):
-            req = get('https://epg.pw/api/epg.xml?channel_id=' + channel_id).text
-            with open(localfile, "w", encoding='utf-8') as filew:
-                filew.write(req)
+        localfile="cust/epg/" + channel_id + ".xml"
+        if not os.path.exists(localfile):
+            localfile="tmp/" + channel_id + ".xml"
+            if ((os.path.exists(localfile) and ((time.time() - os.path.getctime(localfile)) / 60) > 360) or not os.path.exists(localfile)):
+                req = get('https://epg.pw/api/epg.xml?channel_id=' + channel_id).text
+                with open(localfile, "w", encoding='utf-8') as filew:
+                    filew.write(req)
+
         req = ""
         f = open(localfile, "r", encoding="utf8")
         for fl in f:

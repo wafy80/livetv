@@ -1,14 +1,13 @@
+import subprocess
 import sys
 from setuptools._distutils.util import split_quoted
-
-from flask import Flask, request, Response
-
+from flask import Flask, request, Response, send_from_directory, abort
 from acestream_search import main as engine, get_options, __version__
-
 import logging
 import os
 import time
 import hashlib
+
 logging.basicConfig(filename='search.log',level=logging.DEBUG)
 
 app = Flask(__name__)
@@ -46,17 +45,29 @@ def home():
     </html>
     '''
 
-@app.route('/search.log')
-def searchlog():
-    return Response(open("search.log", "r").read(), content_type='text/plain')
-
-@app.route('/livetv.log')
-def livetvlog():
-    return Response(open("livetv.log", "r").read(), content_type='text/plain')
+@app.route('/<name>.log')
+def get_log(name):
+    return Response(open(name + ".log", "r").read(), content_type='text/plain')
 
 @app.route("/w3u")
 def livetv():
     return open("livetv.w3u", "r", encoding="utf8").read().replace("http://:",request.base_url)
+
+@app.route('/update')
+def update():
+    result = subprocess.run(['python3', 'livetv.py'], capture_output=True, text=True)
+    return f"<pre>{result.stdout}</pre>"
+
+# Definisci la cartella in cui sono memorizzati i file da servire
+UPLOAD_FOLDER = 'cust'
+@app.route('/m3u/<filename>')
+def get_file(filename):
+    try:
+        # Restituisci il file dalla cartella specificata
+        return send_from_directory(UPLOAD_FOLDER, filename + '.m3u')
+    except FileNotFoundError:
+        # Se il file non esiste, restituisci un errore 404
+        abort(404)
 
 # Use two routing rules of Your choice where playlist extension does matter.
 @app.route('/m3u')
@@ -117,4 +128,4 @@ if __name__ == '__main__':
         port = sys.argv[1]
     else:
         port = 6880
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='::', port=port)
