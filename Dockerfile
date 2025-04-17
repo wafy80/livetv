@@ -7,4 +7,4 @@ RUN apt update ; apt install -yq procps tor locales ; \
     sed -i -e 's/# it_IT.UTF-8 UTF-8/it_IT.UTF-8 UTF-8/' /etc/locale.gen && \
     dpkg-reconfigure --frontend=noninteractive locales
 EXPOSE 6880
-CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:6880", "-b", "[::]:6880", "--access-logfile", "search.log", "search:app"]
+CMD ["gunicorn", "-w", "3", "-b", "[::]:6880", "--access-logfile", "search.log", "search:app"]
