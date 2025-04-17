@@ -18,7 +18,7 @@ def get_shift(chid):
 
 def fixepg(epgch, epgline):    
     if epgline.lower().find('<title') > -1:
-        totrans=epgline.replace('⋗','->').replace(' lang="zh"','')
+        totrans=epgline.replace('⋗','LIVE!: ->').replace(' lang="zh"','')
         totrans=get_cont_tag(totrans, 'title')[0]
 
         #translated = translate(totrans)

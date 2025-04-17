@@ -51,7 +51,7 @@ def get_log(name):
 
 @app.route("/w3u")
 def livetv():
-    return open("livetv.w3u", "r", encoding="utf8").read().replace("http://:",request.base_url)
+    return Response(open("livetv.w3u", "r", encoding="utf8").read().replace("http://:",request.base_url), content_type='application/json')
 
 @app.route('/update')
 def update():
