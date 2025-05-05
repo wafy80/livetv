@@ -17,12 +17,10 @@ from tor_proxy import tor_proxy
 import glob
 
 def wlog(stext):
-	"""
-	flog = open("log.txt", "a")
-	flog.write(datetime.now().strftime("%d/%m/%Y %H:%M:%S" + ' - ' + stext + '\n'))
-	flog.close()
-	"""
-	print(datetime.now().strftime("%d/%m/%Y %H:%M:%S" + ' - ' + stext))
+    with open("livetv.log", "a") as flog:
+        flog.write(datetime.now().strftime("%d/%m/%Y %H:%M:%S" + ' - ' + stext + '\n'))                        
+
+    print(datetime.now().strftime("%d/%m/%Y %H:%M:%S" + ' - ' + stext))
 
 def left(s, n):
     return s[:n]
@@ -50,7 +48,8 @@ def getchlogo(chname):
 
     return aceimg
 
-wlog("INIZIO")
+with open("livetv.log", "w") as flog:
+    flog.write("INIZIO" + '\n')                        
 
 ACE_ENGINE=os.getenv('ACE_ENGINE','127.0.0.1')
 ACE_PORT=os.getenv('ACE_PORT','6878')
@@ -65,15 +64,17 @@ d = datetime.now()
 if not os.path.exists("tmp"): 
     os.makedirs("tmp") 
 
-port = tor_proxy()
-http_proxy  = f"socks5h://127.0.0.1:{port}"
-https_proxy = f"socks5h://127.0.0.1:{port}"
+tor_proxy = os.getenv('TOR_PROXY','127.0.0.1:9050') #tor_proxy()
+http_proxy  = f"socks5h://{tor_proxy}"
+https_proxy = f"socks5h://{tor_proxy}"
 proxies = {"http" : http_proxy, "https" : https_proxy, }
-   
+wlog('IP: ' + get('https://api.ipify.org').text)
+wlog('Tor: ' + get('https://api.ipify.org', proxies=proxies).text)
+
 strresult = '{' + f'"name":"LiveTv","author":"H0:M0:S0","url": "http://:","image":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_dgKtA6aKRRqqWsm0fuK_GhC-F4ITX5xXCw&s","groups":['
 
 #for idsport in ['1','2','3','4','5','6','7','12','13','17','19','21','22','27','29','30','31','32','33','37','38','39','41','46','52','54','75','96']:
-req = get('https://livetv.sx/it/allupcomingsports', proxies=proxies)
+req = get('https://livetv.sx/it/allupcomingsports', proxies=proxies, verify=False)
 time.sleep(0.1)
 result = req.text
 soup = BeautifulSoup(result, 'html.parser')
@@ -126,7 +127,7 @@ for anchor in upcoming.find_all('a'):
                         if diff.seconds / 60  > 30:
                             continue
                 
-                    req2 = get("https://livetv.sx" + link, proxies=proxies)                
+                    req2 = get("https://livetv.sx" + link, proxies=proxies, verify=False)                
                     time.sleep(0.1)
                     result2 = req2.text                
                     with open(localfile, "w", encoding='utf-8') as filew:
@@ -298,6 +299,6 @@ for localfile in localfiles:
     if ((time.time() - os.path.getctime(localfile)) / 60) > 360:
         os.remove(localfile)
 
-os.system("pkill tor")
+#os.system("pkill tor")
 
 wlog("FINE\n")
